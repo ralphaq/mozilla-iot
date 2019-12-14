@@ -1,0 +1,63 @@
+const char* myssid = "ESP";
+//const char* mypassword = "";
+const char* host = "esp8266-webupdate";
+char* ssid = "AndroidAP"; //not used
+char* password = "098765432111";
+
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
+#include <ESP8266HTTPUpdateServer.h>
+//#include "WebThingAdapter.h"
+
+ESP8266WebServer server(80);
+ESP8266HTTPUpdateServer httpUpdater;
+
+IPAddress local_ip(192,168,10,100);
+IPAddress gateway(192,168,10,1);
+IPAddress netmask(255,255,255,0);
+
+void setup(void) {
+
+Serial.begin(9600);
+Serial.println("");
+wifiConnect();
+server.begin();
+}
+
+void loop(void){
+ server.handleClient();          //Handle client requests
+ //Serial.print("* ")
+}
+void wifiConnect()
+{
+ WiFi.softAPdisconnect(true);
+ WiFi.disconnect();          
+ delay(1000);
+ WiFi.mode(WIFI_STA);
+ WiFi.begin(ssid, password);
+ unsigned long startTime = millis();
+ while (WiFi.status() != WL_CONNECTED) 
+        {
+          delay(500);
+          Serial.print(".");
+         // digitalWrite(pin_led,!digitalRead(pin_led));
+          if ((unsigned long)(millis() - startTime) >= 10000) break;
+        }
+ if (WiFi.status() == WL_CONNECTED)
+  {
+    Serial.println("connected in station mode");
+  } else 
+  {
+    WiFi.mode(WIFI_AP);
+    WiFi.softAPConfig(local_ip, gateway, netmask);
+    WiFi.softAP(myssid, password); 
+    MDNS.begin(host);
+    httpUpdater.setup(&server);
+    MDNS.addService("http", "tcp", 80);
+    Serial.printf("HTTPUpdateServer ready! Open http://%s.local/update in your browser\n", host);
+    }
+  Serial.println("");
+  WiFi.printDiag(Serial);
+}
